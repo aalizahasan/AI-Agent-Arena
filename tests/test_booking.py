@@ -139,3 +139,12 @@ def test_unsupported_snake_handoff_even_with_missing_fields(system,booking):
     response=agent.handle(request)
     assert response['status']=='HANDOFF'
     assert not cal.created
+
+def test_alternatives_on_holiday_stop_after_next_two_clinic_workdays(system,booking):
+    agent,store,cal,llm=system
+    cfg = __import__('app.configuration',fromlist=['load_config']).load_config(store.load_config())
+    svc = cfg.services['S1']
+    start = local('2026-11-19',10)
+    cal.block(CALENDARS['Mr Saanp'],local('2026-11-20',9),local('2026-11-20',17))
+    cal.block(CALENDARS['Mr Saanp'],local('2026-11-23',9),local('2026-11-23',17))
+    assert agent._alternatives(cfg,svc,start)==[]
