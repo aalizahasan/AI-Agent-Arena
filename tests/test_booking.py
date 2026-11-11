@@ -148,3 +148,16 @@ def test_alternatives_on_holiday_stop_after_next_two_clinic_workdays(system,book
     cal.block(CALENDARS['Mr Saanp'],local('2026-11-20',9),local('2026-11-20',17))
     cal.block(CALENDARS['Mr Saanp'],local('2026-11-23',9),local('2026-11-23',17))
     assert agent._alternatives(cfg,svc,start)==[]
+
+def test_unsupported_service_handoff_before_missing_fields(system,booking):
+    agent,store,cal,llm=system
+    req=booking.model_copy(update={'service_id':'Dental Surgery','requested_time':None})
+    assert agent.handle(req)['status']=='HANDOFF'
+    assert not cal.created
+
+def test_explicit_unsupported_intent_routes_to_human(system,booking):
+    from app.models import Interpretation
+    agent,store,cal,llm=system
+    llm.decision=Interpretation(intent='UNSUPPORTED')
+    assert agent.handle(booking)['status']=='HANDOFF'
+    assert not cal.created
