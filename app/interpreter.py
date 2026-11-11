@@ -25,7 +25,8 @@ Return strictly valid JSON with the above keys, no extra text. Never output BOOK
 def enforce_explicit_details(message: str, parsed: Interpretation) -> Interpretation:
     exact_time = bool(re.search(r'\b(?:[01]?\d|2[0-3]):[0-5]\d\b|\b(?:1[0-2]|0?[1-9])(?:\s*:\s*[0-5]\d)?\s*(?:am|pm)\b', message, re.I))
     broad = bool(re.search(r'\b(?:morning|afternoon|evening|anytime)\b',message,re.I))
-    if broad and not exact_time:
+    if not exact_time:
+        # An LLM-invented time cannot authorize a booking or reschedule.
         parsed.requested_time=None
     if re.search(r'\b\d{1,2}/\d{1,2}\b',message) and not re.search(r'\b20\d{2}\b',message):
         parsed.requested_date=None
