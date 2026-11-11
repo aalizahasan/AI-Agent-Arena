@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#132f36"/><title>Meow Meow | Veterinary Front Desk</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#173137;background:#f5f6f2}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 12%,#e5f7ed,transparent 35%),radial-gradient(circle at 90% 80%,#d9eff1,transparent 32%),#f5f6f2}
+header{padding:22px max(24px,calc((100% - 1120px)/2));display:flex;justify-content:space-between;align-items:center;gap:24px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:850;letter-spacing:-.04em;font-size:23px}
+.brand i{font-style:normal;display:grid;place-items:center;width:42px;height:42px;background:#153e41;color:white;border-radius:14px;font-size:23px}
+header small{color:#607779;font-weight:600}
+main{max-width:1120px;margin:20px auto 60px;padding:0 24px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(310px,.8fr);gap:28px}
+.hero{padding:44px 42px;background:#153b3f;border-radius:27px;color:#fff;box-shadow:0 20px 55px #153b3f24}
+.eyebrow{text-transform:uppercase;letter-spacing:.19em;color:#a6d9c6;font-size:11px;font-weight:800}
+h1{margin:16px 0;font-size:clamp(34px,4vw,54px);line-height:1.08;letter-spacing:-.05em}
+.hero p{color:#d1e2dd;line-height:1.7;max-width:540px}
+.features{display:flex;gap:8px;flex-wrap:wrap;margin-top:25px}.features span{padding:9px 11px;font-size:12px;font-weight:650;border:1px solid #5f8d89;border-radius:999px;color:#d6e9e3}
+.chat{background:#fff;color:#173137;margin:28px -14px -18px;border-radius:22px;padding:22px;min-height:135px}
+.chat strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#587578;margin-bottom:12px}
+.bubble{padding:15px 17px;border-radius:14px;background:#f1f7f3;color:#244748;line-height:1.6;white-space:pre-wrap}
+.result{margin-top:13px;display:none}.result.visible{display:block}.result .bubble{background:#eaf3ff}
+.status{display:inline-block;margin:10px 0;padding:6px 10px;border-radius:999px;background:#eaf1f6;color:#36536c;font-size:12px;font-weight:800}
+.panel{background:#fff;border-radius:27px;padding:31px;box-shadow:0 14px 50px #153b3f12}
+.panel h2{font-size:25px;letter-spacing:-.035em;margin:0 0 6px}
+.panel p{color:#6f8383;font-size:13px;margin:0 0 22px;line-height:1.6}
+label{display:block;font-size:12px;font-weight:750;margin-bottom:7px}
+input,textarea,select{width:100%;padding:12px;border:1px solid #dae4df;border-radius:11px;font:inherit;font-size:14px;color:#173137;background:#fff;outline:0}
+input:focus,textarea:focus{border-color:#399c85;box-shadow:0 0 0 3px #399c8520}
+textarea{min-height:111px;resize:vertical}.field{margin-bottom:16px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.optional{font-weight:500;color:#869c9a;font-size:11px}
+button{width:100%;border:0;border-radius:13px;background:#1e756b;color:#fff;padding:15px 17px;font-size:14px;font-weight:800;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}button:hover:not(:disabled){background:#175c54}
+.hint{text-align:center;font-size:11px;color:#8a9a98;margin-top:13px;line-height:1.6}
+footer{max-width:1120px;margin:auto;padding:10px 24px 35px;color:#7e9290;font-size:12px}
+@media(max-width:800px){main{grid-template-columns:1fr}.hero{padding:30px 25px}.chat{margin:24px 0 0}.panel{padding:25px}header{padding:18px 24px}}
+</style>
+</head>
+<body>
+<header><div class="brand"><i>🐾</i><div>meow meow <small style="display:block;font-size:10px;letter-spacing:.05em">VETERINARY HOSPITAL</small></div></div><small>AI Agents Arena 2.0 · Front Desk</small></header>
+<main>
+<section class="hero">
+<div class="eyebrow">Your always-ready reception assistant</div>
+<h1>Good care begins with a great hello.</h1>
+<p>Meet the virtual front desk for Meow Meow Veterinary Hospital. Book, reschedule or cancel a visit in natural language, with availability verified against our real clinic calendars.</p>
+<div class="features"><span>✓ Real calendar availability</span><span>✓ Secure appointment changes</span><span>✓ Helpful alternative times</span><span>✓ Human support when needed</span></div>
+<div class="chat" aria-live="polite">
+<strong>Front desk response</strong><div class="bubble" id="welcome">Hi! 👋 How can I help you and your pet today? Tell me what appointment you'd like, or ask to change an existing booking.</div>
+<div id="result" class="result"><span id="status" class="status"></span><div id="answer" class="bubble"></div><div id="alternatives"></div></div>
+</div></section>
+<aside class="panel">
+<h2>Let's help your pet.</h2><p>Describe what you need. Additional details help us complete the booking without follow-up questions. All times are America/Phoenix.</p>
+<form id="requestForm">
+<div class="field"><label for="message">Your request *</label><textarea id="message" placeholder="Book a wellness exam for my dog Milo on 16 November 2026 at 10 AM." required maxlength="4000"></textarea></div>
+<div class="pair"><div class="field"><label for="owner_name">Owner name <span class="optional">optional</span></label><input id="owner_name" placeholder="Alex Khan"/></div><div class="field"><label for="email">Email <span class="optional">optional</span></label><input id="email" type="email" placeholder="alex@example.com"/></div></div>
+<div class="pair"><div class="field"><label for="pet_name">Pet name <span class="optional">optional</span></label><input id="pet_name" placeholder="Milo"/></div><div class="field"><label for="species">Species <span class="optional">optional</span></label><select id="species"><option value="">Select one</option><option value="dog">Dog</option><option value="cat">Cat</option><option value="rabbit">Rabbit</option><option value="bird">Bird</option></select></div></div>
+<div class="field"><label for="service_id">Service <span class="optional">optional</span></label><select id="service_id"><option value="">Choose a service</option><option value="S1">Wellness Exam · 30 min</option><option value="S2">Routine Follow-up · 30 min</option><option value="S3">Exotic Exam · 45 min</option></select></div>
+<div class="pair"><div class="field"><label for="requested_date">Date <span class="optional">optional</span></label><input type="date" id="requested_date"/></div><div class="field"><label for="requested_time">Time <span class="optional">optional</span></label><input type="time" id="requested_time" step="900"/></div></div>
+<div class="field"><label for="reference">Appointment reference <span class="optional">for changes</span></label><input id="reference" placeholder="MMVH-XXXXXXXXXX"/></div>
+<button id="submit" type="submit">Send to front desk →</button>
+<div class="hint">Appointments: weekdays 9 AM–5 PM · Closed 19 Nov 2026<br/>Medical questions require assistance from clinic staff.</div>
+</form></aside>
+</main>
+<footer>Meow Meow Veterinary Hospital · Fictional competition demonstration · Timezone America/Phoenix · AI cannot provide veterinary medical advice.</footer>
+<script>
+const f=document.getElementById('requestForm'), button=document.getElementById('submit'), panel=document.getElementById('result');
+function safeText(el,s){el.textContent=String(s??'');}
+f.addEventListener('submit',async ev=>{
+ev.preventDefault();button.disabled=true;button.textContent='Checking clinic availability…';
+const payload={request_id:'WEB-'+crypto.randomUUID(),message:document.getElementById('message').value};
+for(const key of ['owner_name','email','pet_name','species','service_id','requested_date','requested_time','reference']){const v=document.getElementById(key).value.trim();if(v)payload[key]=v}
+panel.classList.remove('visible');
+try{const r=await fetch('/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json();safeText(document.getElementById('status'),data.status||'ERROR');safeText(document.getElementById('answer'),data.message||'No response was returned. No booking is confirmed.');
+const alt=document.getElementById('alternatives');alt.replaceChildren();if(Array.isArray(data.alternatives)&&data.alternatives.length){let title=document.createElement('p');title.textContent='Available alternatives (not automatically booked):';alt.append(title);for(const a of data.alternatives){let line=document.createElement('p');line.textContent='• '+(a.display||a.start_local);alt.append(line)}}
+panel.classList.add('visible')}catch(err){safeText(document.getElementById('status'),'ERROR');safeText(document.getElementById('answer'),'The clinic workflow could not be reached. No booking has been confirmed.');panel.classList.add('visible')}finally{button.disabled=false;button.textContent='Send to front desk →';panel.scrollIntoView({behavior:'smooth',block:'nearest'})}
+});
+</script></body></html>
