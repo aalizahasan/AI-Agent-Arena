@@ -105,7 +105,11 @@ class FrontDeskAgent:
                 return self.finish(req,intent,self.result('HANDOFF',
                     'Please contact a clinic staff member directly for this request. I cannot provide medical assessments or medication advice.',
                     handoff_reason=parsed.handoff_reason or 'Staff assistance requested'),fp)
-            if intent in ('GENERAL_HELP','CLARIFY','UNSUPPORTED'):
+            if intent == 'UNSUPPORTED':
+                return self.finish(req,intent,self.result('HANDOFF',
+                    'This request is not supported by online scheduling. Please contact clinic staff for assistance.',
+                    handoff_reason='Unsupported customer request'),fp)
+            if intent in ('GENERAL_HELP','CLARIFY'):
                 return self.finish(req,intent,self.result('NEEDS_INFO',
                     'I can book, cancel or reschedule veterinary appointments. We offer Wellness Exams and Routine Follow-ups for dogs and cats, and Exotic Exams for rabbits and birds. What would you like to do?'),fp)
             if intent == 'BOOK' and (parsed.multiple_appointments or MULTI_RE.search(req.message)):
@@ -189,6 +193,14 @@ class FrontDeskAgent:
         if conflicts:
             return self.finish(req,'BOOK',self.result('NEEDS_INFO',
                 'Your message and form contain different values for: '+', '.join(conflicts)+'. Please clarify which details are correct.'),fp)
+        # Unsupported services are staff handoffs even if other fields are incomplete.
+        if fields.get('service_id'):
+            selected = fields['service_id'].strip().casefold()
+            known_services = {s.id.casefold() for s in cfg.services.values()} | {s.name.casefold() for s in cfg.services.values()}
+            if selected not in known_services:
+                reason = 'This service is not offered by the online clinic schedule.'
+                return self.finish(req,'BOOK',self.result('HANDOFF',
+                    reason+' Please contact clinic staff for help.',handoff_reason=reason),fp)
         # Unsupported pet species need a staff handoff even if other fields are missing.
         known_species={species for service in cfg.services.values() for species in service.species}
         if fields.get('species') and fields['species'].strip().lower() not in known_species:
