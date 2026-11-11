@@ -1,105 +1,96 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Meow Meow Arena demo setup for Windows PowerShell.
+  Meow Meow AI Arena - Windows competition launcher.
 .DESCRIPTION
-  Installs project Python packages, performs local Google OAuth bootstrap,
-  starts Docker services and checks read-only integration health.
-  Secrets stay on your computer. Does not publish n8n or claim real bookings.
+  Runs the automated tests, Google OAuth bootstrap, starts Docker, and checks integration health.
+  Requires Docker Desktop, Python 3.12 and a Google Cloud Desktop OAuth client file.
 #>
-param([switch]$SkipBootstrap,[switch]$SkipTests)
+param(
+  [switch]$SkipBootstrap,
+  [switch]$SkipTests
+)
+
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path -Parent $PSScriptRoot)
-function Step([string]$message){ Write-Host ("`n==> " + $message) -ForegroundColor Cyan }
-function StopWith([string]$message){ throw $message }
+
+function Step([string]$Message) {
+  Write-Host ("`n==> " + $Message) -ForegroundColor Cyan
+}
+function Fail([string]$Message) {
+  throw $Message
+}
+
 Step 'Checking prerequisites'
-if(-not (Get-Command docker -ErrorAction SilentlyContinue)){StopWith 'Install and start Docker Desktop before running this script.'}
-if(-not (Get-Command python -ErrorAction SilentlyContinue)){StopWith 'Install Python 3.12 and ensure python is on PATH.'}
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+  Fail 'Docker Desktop is not installed.'
+}
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+  Fail 'Python 3.12 is not available on PATH.'
+}
 docker info *> $null
-if($LASTEXITCODE -ne 0){StopWith 'Docker Desktop is not running.'}
-if(-not (Test-Path '.env')) {
+if ($LASTEXITCODE -ne 0) {
+  Fail 'Docker Desktop is not running. Start Docker Desktop first.'
+}
+
+if (-not (Test-Path '.env')) {
   Copy-Item '.env.example' '.env'
-  StopWith 'Created .env. Fill GEMINI_API_KEY, INTERNAL_API_KEY and N8N_ENCRYPTION_KEY, then rerun. Never commit .env.'
+  Fail 'Created .env. Fill GEMINI_API_KEY, INTERNAL_API_KEY and N8N_ENCRYPTION_KEY, then rerun.'
 }
+
 $envText = Get-Content '.env' -Raw
-$llmProvider='gemini'
-if($envText -match '(?m)^LLM_PROVIDER\s*=\s*openai\s*
-  if($envText -notmatch "(?m)^$key\s*=\s*[^#\r\n ]" -or $envText -match "(?m)^$key\s*=\s*replace-with") {
-    StopWith "Please set $key in .env (do not post credentials in chat)."
+$provider = 'gemini'
+if ($envText -match '(?m)^LLM_PROVIDER\s*=\s*openai\s*$') {
+  $provider = 'openai'
+}
+$llmKey = if ($provider -eq 'gemini') { 'GEMINI_API_KEY' } else { 'OPENAI_API_KEY' }
+foreach ($key in @($llmKey, 'INTERNAL_API_KEY', 'N8N_ENCRYPTION_KEY')) {
+  $line = [regex]::Match($envText, "(?m)^$key\s*=\s*(.+)\s*$")
+  if (-not $line.Success -or $line.Groups[1].Value.Trim() -match '^(replace-with|$)') {
+    Fail "Configure $key in .env. Never paste secrets into chat."
   }
 }
-if(-not (Test-Path 'secrets')){New-Item -ItemType Directory 'secrets' | Out-Null}
-if(-not (Test-Path '.venv/Scripts/python.exe')){
-  Step 'Creating isolated Python environment'
+
+if (-not (Test-Path 'secrets')) {
+  New-Item -ItemType Directory 'secrets' | Out-Null
+}
+if (-not (Test-Path '.venv\Scripts\python.exe')) {
+  Step 'Creating virtual environment'
   python -m venv .venv
+  if ($LASTEXITCODE -ne 0) { Fail 'Virtual environment creation failed.' }
 }
-$python = Join-Path (Get-Location) '.venv/Scripts/python.exe'
-Step 'Installing project dependencies'
+$python = Join-Path (Get-Location) '.venv\Scripts\python.exe'
+
+Step 'Installing Python dependencies'
 & $python -m pip install -r requirements.txt
-if($LASTEXITCODE -ne 0){StopWith 'Python dependency installation failed.'}
-if(-not $SkipTests){
-  Step 'Running isolated tests'
+if ($LASTEXITCODE -ne 0) { Fail 'Python package installation failed.' }
+
+if (-not $SkipTests) {
+  Step 'Running agent tests'
   & $python -m pytest -q
-  if($LASTEXITCODE -ne 0){StopWith 'Tests failed. Do not demo until fixed.'}
+  if ($LASTEXITCODE -ne 0) { Fail 'Tests failed; do not demo yet.' }
 }
-if(-not $SkipBootstrap){
-  if(-not (Test-Path 'secrets/client_secret.json') -and -not (Test-Path 'secrets/token.json')){
-    StopWith 'Download Google Cloud Desktop OAuth JSON to secrets/client_secret.json and rerun.'
+
+if (-not $SkipBootstrap) {
+  if (-not (Test-Path 'secrets\client_secret.json') -and -not (Test-Path 'secrets\token.json')) {
+    Fail 'Google Desktop OAuth JSON missing at secrets\client_secret.json. Configure Google Cloud OAuth first.'
   }
-  Step 'Creating or reusing official Google calendars and spreadsheet'
+  Step 'Checking authorized Google account and creating/reusing demo resources'
   & $python -m scripts.bootstrap_google
-  if($LASTEXITCODE -ne 0){StopWith 'Google resource bootstrap failed.'}
+  if ($LASTEXITCODE -ne 0) { Fail 'Google resource bootstrap failed.' }
 }
-Step 'Starting n8n and agent services'
+
+Step 'Launching Docker services'
 docker compose up -d --build
-if($LASTEXITCODE -ne 0){StopWith 'Docker Compose startup failed.'}
-Step 'Running read-only live environment checks'
+if ($LASTEXITCODE -ne 0) { Fail 'Docker Compose startup failed.' }
+
+Step 'Checking integrations (read-only)'
 & $python -m scripts.preflight
-if($LASTEXITCODE -ne 0) {
-  Write-Warning 'Preflight detected a blocker. Read the error above; do not claim live readiness.'
+if ($LASTEXITCODE -ne 0) {
+  Write-Warning 'Preflight failed. Read the error above before judging.'
 }
-Write-Host '`nCustomer page: http://localhost:8000' -ForegroundColor Green
-Write-Host 'n8n editor:    http://localhost:5678' -ForegroundColor Green
-Write-Host 'IMPORTANT: Import/publish workflows/mmvh-front-desk.json in n8n before running live requests.' -ForegroundColor Yellow
-Write-Host 'Required final proof: create real Calendar event, ACTIVE Sheets row, cancel and verify CANCELED.' -ForegroundColor Yellow
-){$llmProvider='openai'}
-$llmKey=if($llmProvider -eq 'gemini'){'GEMINI_API_KEY'}else{'OPENAI_API_KEY'}
-foreach($key in @($llmKey,'INTERNAL_API_KEY','N8N_ENCRYPTION_KEY')){
-  if($envText -notmatch "(?m)^$key\s*=\s*[^#\r\n ]" -or $envText -match "(?m)^$key\s*=\s*replace-with") {
-    StopWith "Please set $key in .env (do not post credentials in chat)."
-  }
-}
-if(-not (Test-Path 'secrets')){New-Item -ItemType Directory 'secrets' | Out-Null}
-if(-not (Test-Path '.venv/Scripts/python.exe')){
-  Step 'Creating isolated Python environment'
-  python -m venv .venv
-}
-$python = Join-Path (Get-Location) '.venv/Scripts/python.exe'
-Step 'Installing project dependencies'
-& $python -m pip install -r requirements.txt
-if($LASTEXITCODE -ne 0){StopWith 'Python dependency installation failed.'}
-if(-not $SkipTests){
-  Step 'Running isolated tests'
-  & $python -m pytest -q
-  if($LASTEXITCODE -ne 0){StopWith 'Tests failed. Do not demo until fixed.'}
-}
-if(-not $SkipBootstrap){
-  if(-not (Test-Path 'secrets/client_secret.json') -and -not (Test-Path 'secrets/token.json')){
-    StopWith 'Download Google Cloud Desktop OAuth JSON to secrets/client_secret.json and rerun.'
-  }
-  Step 'Creating or reusing official Google calendars and spreadsheet'
-  & $python -m scripts.bootstrap_google
-  if($LASTEXITCODE -ne 0){StopWith 'Google resource bootstrap failed.'}
-}
-Step 'Starting n8n and agent services'
-docker compose up -d --build
-if($LASTEXITCODE -ne 0){StopWith 'Docker Compose startup failed.'}
-Step 'Running read-only live environment checks'
-& $python -m scripts.preflight
-if($LASTEXITCODE -ne 0) {
-  Write-Warning 'Preflight detected a blocker. Read the error above; do not claim live readiness.'
-}
-Write-Host '`nCustomer page: http://localhost:8000' -ForegroundColor Green
-Write-Host 'n8n editor:    http://localhost:5678' -ForegroundColor Green
-Write-Host 'IMPORTANT: Import/publish workflows/mmvh-front-desk.json in n8n before running live requests.' -ForegroundColor Yellow
-Write-Host 'Required final proof: create real Calendar event, ACTIVE Sheets row, cancel and verify CANCELED.' -ForegroundColor Yellow
+Write-Host ''
+Write-Host 'Customer interface: http://localhost:8000' -ForegroundColor Green
+Write-Host 'n8n editor:        http://localhost:5678' -ForegroundColor Green
+Write-Host 'IMPORT AND PUBLISH workflows/mmvh-front-desk.json IN n8n.' -ForegroundColor Yellow
+Write-Host 'Perform a real Google Calendar booking and verify the Sheets row before the demo.' -ForegroundColor Yellow
