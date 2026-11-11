@@ -1,0 +1,25 @@
+name: AI Front Desk Validation
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - name: Validate n8n workflow export
+        run: |
+          python - <<'PY'
+          import json
+          w=json.load(open('workflows/mmvh-front-desk.json'))
+          assert len(w['nodes']) >= 4
+          assert any(n['type']=='n8n-nodes-base.webhook' for n in w['nodes'])
+          assert any(n['type']=='n8n-nodes-base.respondToWebhook' for n in w['nodes'])
+          print('Workflow JSON structure is valid (import/deployment still requires n8n)')
+          PY
