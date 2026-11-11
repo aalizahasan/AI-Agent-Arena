@@ -131,3 +131,11 @@ def test_logging_failure_flags_attention(system,booking):
 def test_valid_boundaries(system,booking,date,time):
     agent,store,cal,llm=system
     assert agent.handle(booking.model_copy(update={'requested_date':date,'requested_time':time}))['status']=='BOOKED'
+
+
+def test_unsupported_snake_handoff_even_with_missing_fields(system,booking):
+    agent,store,cal,llm=system
+    request=booking.model_copy(update={'species':'snake','service_id':None,'requested_time':None})
+    response=agent.handle(request)
+    assert response['status']=='HANDOFF'
+    assert not cal.created
