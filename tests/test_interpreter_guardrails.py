@@ -18,3 +18,7 @@ def test_ambiguous_numeric_date_rejected():
 
 def test_species_plural_normalized():
     assert interpret('Book an exam for my dogs',species='dogs').species=='dog'
+
+
+def test_model_cannot_invent_exact_time_when_no_time_was_given():
+    assert interpret('Please book a wellness exam on November 16 for Milo',requested_time='10:00').requested_time is None
