@@ -46,12 +46,18 @@ def enforce_explicit_details(message: str, parsed: Interpretation) -> Interpreta
         parsed.species=aliases.get(species,species)
     return parsed
 
-class OpenAIInterpreter:
-    def __init__(self, api_key: str, model: str = 'gpt-4o-mini'):
-        if not api_key: raise ValueError('OPENAI_API_KEY is required for live agent operations')
+class LLMInterpreter:
+    def __init__(self, api_key: str, model: str = 'gemini-2.5-flash', provider: str = 'gemini'):
+        provider = provider.strip().lower()
+        if provider not in ('gemini', 'openai'):
+            raise ValueError('LLM_PROVIDER must be gemini or openai')
+        if not api_key:
+            raise ValueError(f'An API key is required for {provider} (set GEMINI_API_KEY or OPENAI_API_KEY in .env)')
         from openai import OpenAI
-        self.client = OpenAI(api_key=api_key, timeout=25.0, max_retries=1)
+        options = {'base_url': 'https://generativelanguage.googleapis.com/v1beta/openai/'} if provider == 'gemini' else {}
+        self.client = OpenAI(api_key=api_key, timeout=25.0, max_retries=1, **options)
         self.model = model
+        self.provider = provider
 
     def interpret(self, request: CustomerRequest) -> Interpretation:
         result = self.client.chat.completions.create(
@@ -66,3 +72,6 @@ class OpenAIInterpreter:
         if parsed.intent not in {'BOOK','CANCEL','RESCHEDULE','CLARIFY','HANDOFF','GENERAL_HELP','UNSUPPORTED'}:
             raise ValueError('Invalid LLM intent')
         return parsed
+
+# Backward-compatible name for external integrations.
+OpenAIInterpreter = LLMInterpreter
