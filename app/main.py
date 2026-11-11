@@ -30,7 +30,7 @@ def get_agent() -> FrontDeskAgent:
     calendar=GoogleCalendar(google_creds)
     provider=os.getenv('LLM_PROVIDER','gemini').strip().lower()
     key=os.getenv('GEMINI_API_KEY','') if provider == 'gemini' else os.getenv('OPENAI_API_KEY','')
-    model=os.getenv('GEMINI_MODEL','gemini-2.5-flash') if provider == 'gemini' else os.getenv('OPENAI_MODEL','gpt-4o-mini')
+    model=os.getenv('GEMINI_MODEL','gemini-3.8-flash') if provider == 'gemini' else os.getenv('OPENAI_MODEL','gpt-4o-mini')
     interpreter=LLMInterpreter(key,model,provider)
     return FrontDeskAgent(store,calendar,interpreter)
 
