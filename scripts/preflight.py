@@ -35,13 +35,15 @@ def main(argv=None):
         return 1
 
     errors = []
-    keys = ('OPENAI_API_KEY', 'INTERNAL_API_KEY', 'N8N_ENCRYPTION_KEY')
+    provider=os.getenv('LLM_PROVIDER','gemini').strip().lower()
+    key_name='GEMINI_API_KEY' if provider == 'gemini' else 'OPENAI_API_KEY'
+    keys = (key_name, 'INTERNAL_API_KEY', 'N8N_ENCRYPTION_KEY')
     missing = [key for key in keys if not os.getenv(key) or os.environ[key].startswith('replace-with')]
     if missing:
         print('FAIL Environment: configure ' + ', '.join(missing))
         errors.append(('Environment', 'Missing values'))
     else:
-        print('PASS Environment: required variables supplied (values not displayed)')
+        print(f'PASS Environment: required variables supplied for {provider} (values not displayed)')
 
     runtime_path = ROOT / 'secrets' / 'runtime.json'
     token_path = ROOT / 'secrets' / 'token.json'
