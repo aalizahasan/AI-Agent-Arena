@@ -12,7 +12,7 @@ from .models import CustomerRequest, Interpretation, ClinicConfig, Service
 
 log = logging.getLogger('mmvh')
 EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-MEDICAL_RE = re.compile(r'\b(?:vomit\w*|sick|illness|injur\w*|bleed\w*|blood|fever|cough\w*|limp\w*|diarrh\w*|seizure\w*|unconscious|poison\w*|emergen\w*|urgent|diagnos\w*|medicine|medication|dosage|dose|prescri\w*|pain|breath\w*|wound\w*|letharg\w*|treat\w*|symptom\w*|not eating|stopped eating)\b', re.I)
+MEDICAL_RE = re.compile(r'\b(?:vomit\w*|sick|illness|injur\w*|bleed\w*|blood|fever|cough\w*|limp\w*|diarrh\w*|seizure\w*|unconscious|poison\w*|chok\w*|dying|collapsed?|not breathing|cannot breathe|emergen\w*|urgent|diagnos\w*|medicine|medication|dosage|dose|prescri\w*|pain|breath\w*|wound\w*|letharg\w*|treat\w*|symptom\w*|not eating|stopped eating)\b', re.I)
 MULTI_RE = re.compile(r'\b(?:two|2|three|3|both|multiple|several)\b.{0,45}\b(?:pets?|dogs?|cats?|appointments?|visits?)\b', re.I)
 PRIVACY_RE = re.compile(r'\b(?:all|other|another|every)\b.{0,35}\b(?:clients?|customers?|patients?|appointments?|emails?|records?)\b',re.I)
 VERIFY_FAILURE = "We couldn't verify an active appointment using those details. Please check your reference and email."
@@ -186,6 +186,11 @@ class FrontDeskAgent:
         if conflicts:
             return self.finish(req,'BOOK',self.result('NEEDS_INFO',
                 'Your message and form contain different values for: '+', '.join(conflicts)+'. Please clarify which details are correct.'),fp)
+        # Unsupported pet species need a staff handoff even if other fields are missing.
+        known_species={species for service in cfg.services.values() for species in service.species}
+        if fields.get('species') and fields['species'].strip().lower() not in known_species:
+            reason='This pet species is not supported by the online appointment service.'
+            return self.finish(req,'BOOK',self.result('HANDOFF',reason+' Please contact clinic staff for help.',handoff_reason=reason),fp)
         missing=self._missing(fields,['owner_name','email','pet_name','species','service_id','requested_date','requested_time'])
         if missing:
             return self.finish(req,'BOOK',self.result('NEEDS_INFO','Please provide: '+', '.join(missing).replace('_',' ')+'.',missing_fields=missing),fp)
