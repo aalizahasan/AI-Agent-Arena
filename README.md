@@ -50,6 +50,19 @@ The workflow is **executed through n8n**, not through the local browser alone. T
 - **Miss Loomri:** Mon/Wed/Fri, lunch 12:00–13:00; S3, 45 minutes for rabbits/birds.
 - **Rules:** One pet/request; complete owner name, email, pet, species, service, exact date/time; at least 60-minute lead; 15-minute grid; final date Nov 25 inclusive; full interval must fit; all overlapping events busy; back-to-back allowed.
 
+## Fastest judge-laptop launch
+
+After cloning the repo, installing Docker Desktop and Python 3.12, and preparing the Google Cloud Desktop OAuth client JSON, you can use the guided PowerShell setup:
+
+```powershell
+Copy-Item .env.example .env
+# Fill your own OPENAI_API_KEY, INTERNAL_API_KEY, N8N_ENCRYPTION_KEY and JUDGE_EMAIL in .env.
+# Save Google Desktop OAuth JSON to secrets/client_secret.json.
+.\\scripts\\start-demo.ps1
+```
+
+The script runs the automated tests, performs Google OAuth/bootstrap, starts n8n and FastAPI, and checks read-only service readiness. You **still must import and publish** the n8n workflow in the browser. The script does not claim external bookings were verified. Avoid posting API keys, OAuth files, or tokens in public channels.
+
 ## Run on Windows (with Docker Desktop)
 
 ### 1. Requirements
