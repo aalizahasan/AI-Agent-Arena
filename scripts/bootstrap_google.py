@@ -42,6 +42,16 @@ def main():
     cal=build('calendar','v3',credentials=creds,cache_discovery=False)
     sheets=build('sheets','v4',credentials=creds,cache_discovery=False)
     drive=build('drive','v3',credentials=creds,cache_discovery=False)
+    expected_owner = os.getenv('GOOGLE_OWNER_EMAIL', 'syedaalizahassannaqvi@gmail.com').strip().casefold()
+    primary = cal.calendarList().get(calendarId='primary').execute()
+    signed_in = str(primary.get('id', '')).strip().casefold()
+    if expected_owner and signed_in != expected_owner:
+        sys.exit(f'Wrong Google OAuth account: {signed_in!r}. Expected {expected_owner!r}. '
+                 'Clear secrets/token.json and sign in using the competition account.')
+    print('Google account verified:', signed_in)
+    judge_is_owner = bool(judge and judge.casefold() == signed_in)
+    if judge_is_owner:
+        print('Judge account equals calendar and spreadsheet owner: ownership already grants access.')
     runtime=json.loads(RUNTIME.read_text()) if RUNTIME.exists() else {}
     calendars=runtime.setdefault('calendars',{})
     for doctor in ('Mr Saanp','Miss Loomri'):
@@ -51,7 +61,7 @@ def main():
             calendars[doctor]=resource['id']
             RUNTIME.write_text(json.dumps(runtime,indent=2))
         print(doctor,':',calendars[doctor])
-        if judge:
+        if judge and not judge_is_owner:
             try:
                 cal.acl().insert(calendarId=calendars[doctor],
                     body={'role':'writer','scope':{'type':'user','value':judge}}).execute()
@@ -76,7 +86,7 @@ def main():
         sheets.spreadsheets().values().batchUpdate(spreadsheetId=sheet_id,
             body={'valueInputOption':'RAW','data':input_data}).execute()
     print('Spreadsheet:',runtime['spreadsheet_id'])
-    if judge:
+    if judge and not judge_is_owner:
         try:
             drive.permissions().create(fileId=runtime['spreadsheet_id'],
                 body={'type':'user','role':'reader','emailAddress':judge},
