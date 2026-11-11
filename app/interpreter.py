@@ -32,6 +32,14 @@ def enforce_explicit_details(message: str, parsed: Interpretation) -> Interpreta
         parsed.requested_date=None
     if re.search(r'\btomorrow\b',message,re.I) and not re.search(r'\b\d{1,2}\s+(?:november|nov)\b|\b20\d{2}-\d\d-\d\d\b',message,re.I):
         parsed.requested_date='2026-11-12'
+    # The LLM cannot invent an appointment date absent from the customer message.
+    explicit_date = bool(re.search(
+        r'\b20\d{2}-\d{1,2}-\d{1,2}\b|\b(?:today|tomorrow|day after tomorrow)\b|'
+        r'\b(?:next\s+)?(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|'
+        r'\b(?:\d{1,2}\s+(?:november|nov)|(?:november|nov)\s+\d{1,2})\b|'
+        r'\b\d{1,2}/\d{1,2}(?:/20\d{2})?\b', message, re.I))
+    if not explicit_date:
+        parsed.requested_date = None
     if parsed.species:
         species=parsed.species.strip().lower()
         aliases={'dogs':'dog','cats':'cat','rabbits':'rabbit','birds':'bird'}
