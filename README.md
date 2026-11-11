@@ -28,7 +28,7 @@ Judge / Customer
    n8n Webhook ──→ Normalize input ──→ HTTP Request /api/requests
                                             │
                                       FastAPI Agent
-                                      ├─ OpenAI LLM: intent + entity extraction
+                                      ├─ Gemini LLM: intent + entity extraction
                                       ├─ Guardrails + deterministic rules
                                       ├─ Google Sheets: live Config + audit + appointments
                                       ├─ Google Calendar: live events, create/delete/patch
@@ -63,6 +63,18 @@ Copy-Item .env.example .env
 
 The script runs the automated tests, performs Google OAuth/bootstrap, starts n8n and FastAPI, and checks read-only service readiness. You **still must import and publish** the n8n workflow in the browser. The script does not claim external bookings were verified. Avoid posting API keys, OAuth files, or tokens in public channels.
 
+## Competition launch — use the team Google account
+
+Team account: **syedaalizahassannaqvi@gmail.com**. The event organizers instructed this team to use that email.
+
+**Gemini is the default LLM** through Google's OpenAI-compatible API endpoint. Put the Gemini key only in your local `.env` file, never in GitHub or chat. If your key cannot access the default `gemini-3.8-flash`, check model availability in Google AI Studio and set `GEMINI_MODEL` to one available to your key.
+
+**Critical setup requirement:** A Gemini API key does **not** authorize Google Calendar or Sheets. You must separately create a Google Cloud OAuth **Desktop application** client with Calendar, Sheets, and Drive APIs enabled. Place the downloaded JSON at `secrets/client_secret.json`.
+
+After setting secrets, use `.\\scripts\\start-demo.ps1` in PowerShell. The script verifies Google owner identity before creating resources. Then open http://localhost:5678 and import/publish `workflows/mmvh-front-desk.json`. Visit http://localhost:8000 for the judge interface.
+
+See [FINAL-DEMO-SETUP.md](docs/FINAL-DEMO-SETUP.md) for concise account setup and a live verification checklist.
+
 ## Run on Windows (with Docker Desktop)
 
 ### 1. Requirements
@@ -70,8 +82,8 @@ The script runs the automated tests, performs Google OAuth/bootstrap, starts n8n
 - Git and Python 3.12 (for the one-time Google bootstrap and automated tests).
 - Docker Desktop with Docker Compose (WSL2 backend recommended on Windows).
 - A Google account, a **Google Cloud Desktop OAuth** client, and Google **Calendar**, **Sheets**, **Drive** APIs enabled in that Cloud project.
-- A usable OpenAI API key for an LLM; default model `gpt-4o-mini`. **ChatGPT subscription alone is not an API credential.**
-- The judge's email address (for required sharing).
+- A **Gemini API key** from Google AI Studio; default model `gemini-3.8-flash` (configurable with `GEMINI_MODEL`). An OpenAI API key is optional, not required.
+- The organizers have directed this team to use its own email `syedaalizahassannaqvi@gmail.com` for judge access.
 
 > IMPORTANT: Google Cloud may require adding the Google account as an OAuth test user on the consent-screen configuration, depending on the project's publishing state. Authorization must allow the Calendar, Sheets, and Drive scopes requested by the bootstrap script.
 
@@ -84,7 +96,7 @@ Copy-Item .env.example .env
 New-Item -ItemType Directory -Force secrets | Out-Null
 ```
 
-Fill in `.env` with real `OPENAI_API_KEY`, `INTERNAL_API_KEY`, `N8N_ENCRYPTION_KEY`, and `JUDGE_EMAIL`. Use unique high-entropy values for the latter two; PowerShell generation examples:
+Fill in `.env` with real `GEMINI_API_KEY`, `INTERNAL_API_KEY`, and `N8N_ENCRYPTION_KEY`; keep `GOOGLE_OWNER_EMAIL` and `JUDGE_EMAIL` set to `syedaalizahassannaqvi@gmail.com` for this event. Use unique high-entropy values for the latter two; PowerShell generation examples:
 
 ```powershell
 python -c "import secrets;print(secrets.token_urlsafe(48))"
@@ -109,7 +121,7 @@ A Google sign-in browser window will appear. Use the same Google account intende
 - Event-safe Calendar IDs in the Config rows.
 - `secrets/token.json` and `secrets/runtime.json` locally, never in Git.
 
-If `JUDGE_EMAIL` was set before running bootstrap, the script attempts to grant calendar **writer** access and spreadsheet **reader** access. **Verify these permissions in Google's Share UI before judging.** If sharing failed or the email was not set, do the sharing manually.
+The bootstrap verifies that the signed-in primary calendar belongs to `GOOGLE_OWNER_EMAIL`. When `JUDGE_EMAIL` is the same account as the owner, it does not try to share resources back to itself: ownership already provides full access. If a separate judge address is provided later, rerun the bootstrap and verify the writer/viewer permissions.
 
 Running the script again reuses previously created resources saved in `secrets/runtime.json`.
 
@@ -170,7 +182,7 @@ Invoke-RestMethod -Method Post `
   -Body $body
 ```
 
-Use only synthetic owner details and the **judge-provided test email**, not genuine customer data. A real BOOKED result must correspond to the provider Calendar event and an ACTIVE Appointments row with its returned event ID. If any API fails, the status must be ERROR or NEEDS_ATTENTION, never BOOKED.
+Use only synthetic owner details and the **team's authorized test email**, not genuine customer data. A real BOOKED result must correspond to the provider Calendar event and an ACTIVE Appointments row with its returned event ID. If any API fails, the status must be ERROR or NEEDS_ATTENTION, never BOOKED.
 
 ### 7. Share the web interface with judges
 
