@@ -151,7 +151,10 @@ class FrontDeskAgent:
         if requested.date() > cfg.final_date: return []
         days=[]
         current=requested.date()
-        while len(days) < 3 and current <= cfg.final_date:
+        requested_workday = (current.weekday() in cfg.clinic_days and current not in cfg.holiday)
+        # Include requested workday, if open, and the next two clinic working days.
+        max_days = 3 if requested_workday else 2
+        while len(days) < max_days and current <= cfg.final_date:
             if current.weekday() in cfg.clinic_days and current not in cfg.holiday:
                 days.append(current)
             current += timedelta(days=1)
