@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from .models import CustomerRequest
-from .interpreter import OpenAIInterpreter
+from .interpreter import LLMInterpreter
 from .agent import FrontDeskAgent
 from .configuration import load_config
 
@@ -28,7 +28,10 @@ def get_agent() -> FrontDeskAgent:
     google_creds=get_google_credentials(os.getenv('GOOGLE_TOKEN_FILE','/app/secrets/token.json'))
     store=SheetsStore(google_creds,sid)
     calendar=GoogleCalendar(google_creds)
-    interpreter=OpenAIInterpreter(os.getenv('OPENAI_API_KEY',''),os.getenv('OPENAI_MODEL','gpt-4o-mini'))
+    provider=os.getenv('LLM_PROVIDER','gemini').strip().lower()
+    key=os.getenv('GEMINI_API_KEY','') if provider == 'gemini' else os.getenv('OPENAI_API_KEY','')
+    model=os.getenv('GEMINI_MODEL','gemini-2.5-flash') if provider == 'gemini' else os.getenv('OPENAI_MODEL','gpt-4o-mini')
+    interpreter=LLMInterpreter(key,model,provider)
     return FrontDeskAgent(store,calendar,interpreter)
 
 @app.get('/health')
