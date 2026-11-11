@@ -64,6 +64,10 @@ footer{max-width:1120px;margin:auto;padding:10px 24px 35px;color:#7e9290;font-si
 <footer>Meow Meow Veterinary Hospital · Fictional competition demonstration · Timezone America/Phoenix · AI cannot provide veterinary medical advice.</footer>
 <script>
 const f=document.getElementById('requestForm'), button=document.getElementById('submit'), panel=document.getElementById('result');
+// E4: Read live service durations from the Config-backed catalog instead of trusting stale labels.
+fetch('/api/catalog').then(response=>{if(!response.ok)throw Error('catalog unavailable');return response.json()})
+.then(data=>{for(const item of data.services||[]){const choice=document.querySelector('#service_id option[value="'+item.id+'"]');if(choice){choice.textContent=item.name+' · '+item.duration_minutes+' min';}}})
+.catch(()=>{/* Form remains usable; server still validates durations using live Config. */});
 function safeText(el,s){el.textContent=String(s??'');}
 f.addEventListener('submit',async ev=>{
 ev.preventDefault();button.disabled=true;button.textContent='Checking clinic availability…';
