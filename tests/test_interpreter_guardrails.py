@@ -22,3 +22,9 @@ def test_species_plural_normalized():
 
 def test_model_cannot_invent_exact_time_when_no_time_was_given():
     assert interpret('Please book a wellness exam on November 16 for Milo',requested_time='10:00').requested_time is None
+
+def test_model_cannot_invent_date_if_no_date_in_customer_text():
+    assert interpret('Book Milo at 10 AM for a wellness exam',requested_date='2026-11-16').requested_date is None
+
+def test_explicit_weekday_can_supply_a_date():
+    assert interpret('Book Milo next Monday at 10 AM',requested_date='2026-11-16').requested_date == '2026-11-16'
