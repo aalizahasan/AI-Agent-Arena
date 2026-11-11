@@ -47,7 +47,7 @@ def enforce_explicit_details(message: str, parsed: Interpretation) -> Interpreta
     return parsed
 
 class LLMInterpreter:
-    def __init__(self, api_key: str, model: str = 'gemini-2.5-flash', provider: str = 'gemini'):
+    def __init__(self, api_key: str, model: str = 'gemini-3.8-flash', provider: str = 'gemini'):
         provider = provider.strip().lower()
         if provider not in ('gemini', 'openai'):
             raise ValueError('LLM_PROVIDER must be gemini or openai')
