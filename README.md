@@ -127,6 +127,18 @@ Health is only an application-process check; it does not prove external credenti
 
 n8n has separate test and production webhook URLs. The `/submit` UI uses the **production** URL, so a saved and activated/published workflow is mandatory.
 
+### 5A. Run the deployment preflight (read-only)
+
+After Google bootstrap and Docker startup, run:
+
+```powershell
+python -m scripts.preflight
+```
+
+This checks required environment values (without displaying credentials), OAuth access, the actual Config/Appointments/CallLog headers, both provider calendars and local FastAPI/n8n reachability. It **does not create or modify appointments** and does not prove the n8n workflow has been activated. For Google-only checks before launching Docker, use `python -m scripts.preflight --skip-http`.
+
+The automated unit/regression tests cover scheduling and failure simulation, but a **real** successful booking/cancellation through the published n8n webhook is still mandatory before judging.
+
 ### 6. Run an end-to-end judge test
 
 From PowerShell:
@@ -166,6 +178,8 @@ Optional: `pet_name`, `species`, `service_id`, `requested_date` (YYYY-MM-DD), `r
 Supported result statuses: `BOOKED`, `CANCELED`, `RESCHEDULED`, `NEEDS_INFO`, `UNAVAILABLE`, `HANDOFF`, `VERIFICATION_FAILED`, `ERROR`, `NEEDS_ATTENTION`. The exact format is documented in `docs/architecture.md`.
 
 ## Automated tests
+
+The expanded local regression suite currently contains 81 passing tests; this is not a substitute for verifying the remote GitHub Actions job or real Google API calls.
 
 ```powershell
 python -m pytest -q
