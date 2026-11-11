@@ -1,0 +1,127 @@
+{
+  "name": "MMVH — AI Front Desk — Agentic Booking, Cancellation & Extensions",
+  "nodes": [
+    {
+      "id": "76df5985-e5da-47d1-9380-1e3a2711e4f6",
+      "name": "Judge Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        280
+      ],
+      "webhookId": "mmvh-front-desk",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mmvh-front-desk",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "5a40df07-ae7b-4d72-9da1-8efc66440824",
+      "name": "Normalize Judge Submission",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        280
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const incoming = $json.body ?? $json;\nreturn { json: { request_id: incoming.request_id, message: incoming.message, owner_name: incoming.owner_name ?? null, email: incoming.email ?? null, pet_name: incoming.pet_name ?? null, species: incoming.species ?? null, service_id: incoming.service_id ?? null, requested_date: incoming.requested_date ?? null, requested_time: incoming.requested_time ?? null, reference: incoming.reference ?? null } };"
+      }
+    },
+    {
+      "id": "7d4a469c-244c-4f9e-8876-c8473ef735c2",
+      "name": "Execute AI Front Desk Tools",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/api/requests",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "3668935a-d72a-43aa-a8e4-57d0b1aca496",
+      "name": "Respond to Judge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1040,
+        280
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Judge Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Judge Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Judge Submission": {
+      "main": [
+        [
+          {
+            "node": "Execute AI Front Desk Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute AI Front Desk Tools": {
+      "main": [
+        [
+          {
+            "node": "Respond to Judge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Phoenix"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}
